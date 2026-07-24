@@ -12,12 +12,8 @@ class AuthService {
   static const _tokenKey = 'jwt_token';
   static const _userKey = 'user_json';
 
-  Future<UserModel> login(String email, String password, UserRole role) async {
-    final path = role == UserRole.admin
-        ? ApiConstants.adminLogin
-        : ApiConstants.login;
-
-    final response = await _api.post(path, data: {
+  Future<UserModel> login(String email, String password) async {
+    final response = await _api.post(ApiConstants.login, data: {
       'email': email,
       'password': password,
     });

@@ -95,12 +95,56 @@ class DonationNotifier extends StateNotifier<DonationState> {
     }
   }
 
+  Future<String?> uploadPhoto(String filePath) async {
+    return _donationService.uploadFoodPhoto(filePath);
+  }
+
   Future<bool> createDonation(Map<String, dynamic> data) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       await _donationService.createDonation(data);
       await loadMyDonations();
       return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> claimDonation(String donationId) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final success = await _donationService.claimDonation(donationId);
+      if (success) {
+        await Future.wait([
+          loadAvailableDonations(),
+          loadMyRequests(),
+        ]);
+        return true;
+      }
+      state = state.copyWith(isLoading: false, error: 'Failed to claim donation');
+      return false;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+  Future<bool> updateRequestStatus(String requestId, String status) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final success =
+          await _donationService.updateRequestStatus(requestId, status);
+      if (success) {
+        await Future.wait([
+          loadMyRequests(),
+          loadAvailableDonations(),
+          loadMyDonations(),
+        ]);
+        return true;
+      }
+      state =
+          state.copyWith(isLoading: false, error: 'Could not update status');
+      return false;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
       return false;

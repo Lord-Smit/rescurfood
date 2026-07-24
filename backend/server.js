@@ -39,6 +39,7 @@ app.use('/api/notifications', notificationRoutes);
 
 app.use(errorHandler);
 
-app.listen(port, () => {
-  console.log(`FoodBridge server running on port ${port}`);
+// Listen on '0.0.0.0' so Android Emulator (10.0.2.2) and local network devices can connect
+app.listen(port, '0.0.0.0', () => {
+  console.log(`FoodBridge server running on http://0.0.0.0:${port}`);
 });

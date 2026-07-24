@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../features/admin/screens/admin_dashboard.dart';
 import '../features/admin/screens/approval_detail_screen.dart';
 import '../features/admin/screens/manage_donations_screen.dart';
@@ -12,6 +13,10 @@ import '../features/donor/screens/donation_history_screen.dart';
 import '../features/donor/screens/donor_home.dart';
 import '../features/donor/screens/upload_donation_screen.dart';
 import '../features/ngo/screens/ngo_home.dart';
+import '../features/ngo/screens/request_status_screen.dart';
+import '../features/onboarding/screens/onboarding_screen.dart';
+import '../features/shared/screens/live_tracking_screen.dart';
+import '../features/shared/screens/profile_screen.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 
@@ -39,8 +44,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       final onAuthPage =
           location.startsWith('/login') || location.startsWith('/signup');
       final isSplash = location == '/splash';
+      final isOnboarding = location == '/onboarding';
 
-      if (isSplash) return null;
+      if (isSplash || isOnboarding) return null;
 
       if (authState.status == AuthStatus.unknown) return '/splash';
       if (!loggedIn && !onAuthPage) return '/login';
@@ -53,6 +59,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/splash',
         builder: (_, __) => const _SplashScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (_, __) => const OnboardingScreen(),
       ),
       GoRoute(
         path: '/login',
@@ -72,6 +82,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             redirect: (_, __) =>
                 _homeForRole(ref.read(authProvider).user?.role),
           ),
+
+          // ── Donor ──────────────────────────────────────────────────────
           GoRoute(
             path: '/donor/home',
             builder: (_, __) => const DonorHomeScreen(),
@@ -84,10 +96,28 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/donor/upload',
             builder: (_, __) => const UploadDonationScreen(),
           ),
+
+          // ── NGO ────────────────────────────────────────────────────────
           GoRoute(
             path: '/ngo/home',
             builder: (_, __) => const NgoHomeScreen(),
           ),
+          GoRoute(
+            path: '/ngo/requests',
+            builder: (_, __) => const RequestStatusScreen(),
+          ),
+
+          // ── Shared ─────────────────────────────────────────────────────
+          GoRoute(
+            path: '/tracking',
+            builder: (_, __) => const LiveTrackingScreen(),
+          ),
+          GoRoute(
+            path: '/profile',
+            builder: (_, __) => const ProfileScreen(),
+          ),
+
+          // ── Admin ──────────────────────────────────────────────────────
           GoRoute(
             path: '/admin/dashboard',
             builder: (_, __) => const AdminDashboard(),
@@ -135,6 +165,8 @@ Widget _roleShell(UserRole? role, Widget child) {
   return _RoleScaffold(role: role, child: child);
 }
 
+// ── Splash ──────────────────────────────────────────────────────────────────
+
 class _SplashScreen extends ConsumerStatefulWidget {
   const _SplashScreen();
 
@@ -167,17 +199,59 @@ class _SplashScreenState extends ConsumerState<_SplashScreen> {
     if (state.status == AuthStatus.authenticated) {
       context.go(_homeForRole(state.user?.role) ?? '/login');
     } else {
-      context.go('/login');
+      // Show onboarding to first-time users
+      final prefs = await SharedPreferences.getInstance();
+      final seenOnboarding = prefs.getBool('seen_onboarding') ?? false;
+      if (!mounted) return;
+      if (!seenOnboarding) {
+        await prefs.setBool('seen_onboarding', true);
+        context.go('/onboarding');
+      } else {
+        context.go('/login');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
+    return Scaffold(
+      backgroundColor: const Color(0xFF1B5E20),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.eco, color: Colors.white, size: 64),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'FoodLink',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Saving Food. Serving Humanity.',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 48),
+            const CircularProgressIndicator(color: Colors.white),
+          ],
+        ),
+      ),
     );
   }
 }
+
+// ── Role Scaffold (Bottom Nav) ────────────────────────────────────────────────
 
 class _RoleScaffold extends StatelessWidget {
   final UserRole role;
@@ -193,8 +267,16 @@ class _RoleScaffold extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex(context, tabs),
         onDestinationSelected: (i) => _onTap(context, i, tabs),
+        backgroundColor: Colors.white,
+        elevation: 8,
+        shadowColor: Colors.black12,
         destinations: tabs
-            .map((t) => NavigationDestination(icon: Icon(t.icon), label: t.label))
+            .map((t) => NavigationDestination(
+                  icon: Icon(t.icon),
+                  selectedIcon: Icon(t.icon,
+                      color: const Color(0xFF2E7D32)),
+                  label: t.label,
+                ))
             .toList(),
       ),
     );
@@ -205,13 +287,17 @@ class _RoleScaffold extends StatelessWidget {
       case UserRole.donor:
         return const [
           _TabItem('Home', Icons.home_outlined, '/donor/home'),
+          _TabItem('Tracking', Icons.local_shipping_outlined, '/tracking'),
+          _TabItem('Donate', Icons.add_circle_outline, '/donor/upload'),
           _TabItem('History', Icons.history, '/donor/history'),
-          _TabItem('Upload', Icons.add_circle_outline, '/donor/upload'),
+          _TabItem('Profile', Icons.person_outline, '/profile'),
         ];
       case UserRole.ngo:
         return const [
-          _TabItem('Available', Icons.inventory_2_outlined, '/ngo/home'),
-          _TabItem('Home', Icons.home_outlined, '/ngo/home'),
+          _TabItem('Nearby', Icons.inventory_2_outlined, '/ngo/home'),
+          _TabItem('Tracking', Icons.local_shipping_outlined, '/tracking'),
+          _TabItem('Requests', Icons.assignment_outlined, '/ngo/requests'),
+          _TabItem('Profile', Icons.person_outline, '/profile'),
         ];
       case UserRole.admin:
         return const [

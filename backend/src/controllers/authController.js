@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
+const { admin, db } = require('../config/firebase');
 const { success, error } = require('../utils/apiResponse');
 
 const login = async (req, res) => {
@@ -105,6 +106,49 @@ const register = async (req, res) => {
   }
 };
 
+const applyRegistration = async (req, res) => {
+  try {
+    const { type, name, email, phone, password } = req.body;
+
+    if (!name || !password) {
+      return error(res, 'Name and password are required', 400);
+    }
+    if (!email && !phone) {
+      return error(res, 'Email or phone is required', 400);
+    }
+
+    if (email) {
+      const existingUser = await User.getByEmail(email);
+      if (existingUser) return error(res, 'Email already registered', 409);
+    }
+
+    if (phone) {
+      const existingPhone = await User.getByPhone(phone);
+      if (existingPhone) return error(res, 'Phone already registered', 409);
+    }
+
+    const ref = await db.collection('registrationRequests').add({
+      type: type ? type.toUpperCase() : 'DONOR',
+      name,
+      email: email || null,
+      phone: phone || null,
+      password,
+      status: 'PENDING',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return success(
+      res,
+      { id: ref.id },
+      'Registration application submitted successfully. Pending admin approval.',
+      201
+    );
+  } catch (err) {
+    return error(res, err.message, 500);
+  }
+};
+
 const getMe = async (req, res) => {
   try {
     if (req.user._id === 'admin_id') {
@@ -162,4 +206,4 @@ const socialLogin = async (req, res) => {
   }
 };
 
-module.exports = { login, register, getMe, logout, forgotPassword, socialLogin };
+module.exports = { login, register, applyRegistration, getMe, logout, forgotPassword, socialLogin };

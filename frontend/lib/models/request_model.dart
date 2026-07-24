@@ -55,6 +55,7 @@ class RequestModel {
   final String ngoId;
   final String ngoName;
   final String donationName;
+  final String? donorName;
   final RequestStatus status;
   final DateTime createdAt;
 
@@ -64,6 +65,7 @@ class RequestModel {
     required this.ngoId,
     required this.ngoName,
     required this.donationName,
+    this.donorName,
     required this.status,
     required this.createdAt,
   });
@@ -75,6 +77,7 @@ class RequestModel {
       ngoId: map['ngo_id'] ?? map['ngoId'] ?? '',
       ngoName: map['ngo_name'] ?? map['ngoName'] ?? '',
       donationName: map['donation_name'] ?? map['donationName'] ?? '',
+      donorName: map['donor_name'] ?? map['donorName'],
       status: RequestStatusExtension.fromString(map['status'] ?? 'pending'),
       createdAt: DateTime.parse(map['created_at'] ?? map['createdAt'] ?? DateTime.now().toIso8601String()),
     );
@@ -83,5 +86,6 @@ class RequestModel {
   Map<String, dynamic> toMap() => {
         'donation_id': donationId,
         'status': status.value,
+        'donor_name': donorName,
       };
 }

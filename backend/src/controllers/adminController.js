@@ -7,12 +7,22 @@ const { success, error } = require('../utils/apiResponse');
 const getRegistrationRequests = async (req, res) => {
   try {
     const { status } = req.query;
-    let query = db.collection('registrationRequests').orderBy('createdAt', 'desc');
+    let ref = db.collection('registrationRequests');
+    let snap;
     if (status) {
-      query = query.where('status', '==', status.toUpperCase());
+      snap = await ref.where('status', '==', status.toUpperCase()).get();
+    } else {
+      snap = await ref.get();
     }
-    const snap = await query.get();
-    const requests = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    let requests = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    requests.sort((a, b) => {
+      const aTime = (a.createdAt || 0)?.toMillis?.() || new Date(a.createdAt || 0).getTime();
+      const bTime = (b.createdAt || 0)?.toMillis?.() || new Date(b.createdAt || 0).getTime();
+      return bTime - aTime;
+    });
+
     return success(res, { requests }, 'Registration requests fetched');
   } catch (err) {
     return error(res, err.message, 500);

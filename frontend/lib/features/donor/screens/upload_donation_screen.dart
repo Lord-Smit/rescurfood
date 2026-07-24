@@ -60,13 +60,22 @@ class _UploadDonationScreenState extends ConsumerState<UploadDonationScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    String? uploadedPhotoUrl;
+    if (_photoPath != null && !_photoPath!.startsWith('http')) {
+      uploadedPhotoUrl = await ref
+          .read(donationProvider.notifier)
+          .uploadPhoto(_photoPath!);
+    } else {
+      uploadedPhotoUrl = _photoPath;
+    }
+
     final data = {
       'food_name': _foodNameCtrl.text.trim(),
       'quantity': double.parse(_quantityCtrl.text.trim()),
       'unit': _unitCtrl.text.trim(),
       'expiry_time': _expiryTime.toIso8601String(),
       'pickup_address': _addressCtrl.text.trim(),
-      'photo_url': _photoPath,
+      'photo_url': uploadedPhotoUrl,
     };
     final success = await ref.read(donationProvider.notifier).createDonation(data);
     if (success && mounted) {

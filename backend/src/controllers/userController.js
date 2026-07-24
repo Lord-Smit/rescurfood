@@ -121,7 +121,7 @@ const getAllUsers = async (req, res) => {
     if (role) filters.role = role;
 
     let users = await User.getAll(filters);
-    const sanitized = users.map(u => {
+    let sanitized = users.map(u => {
       const { password, ...rest } = u;
       return {
         id: rest._id,

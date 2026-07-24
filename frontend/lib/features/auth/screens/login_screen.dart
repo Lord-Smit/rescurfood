@@ -5,7 +5,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_button.dart';
-import '../../../models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -19,7 +18,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  UserRole _selectedRole = UserRole.donor;
   bool _obscurePassword = true;
 
   @override
@@ -34,7 +32,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     await ref.read(authProvider.notifier).login(
           _emailController.text.trim(),
           _passwordController.text,
-          _selectedRole,
         );
     if (mounted && ref.read(authProvider).status == AuthStatus.authenticated) {
       context.go('/');
@@ -53,19 +50,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 60),
-                Icon(Icons.eco, size: 64, color: AppColors.primaryGreen),
+                const Icon(Icons.eco, size: 64, color: AppColors.primaryGreen),
                 const SizedBox(height: 8),
-                Text(AppStrings.appName,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryGreen,
-                        )),
+                Text(
+                  AppStrings.appName,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryGreen,
+                      ),
+                ),
                 const SizedBox(height: 32),
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(
-                      labelText: AppStrings.email,
-                      prefixIcon: Icon(Icons.email_outlined)),
+                    labelText: AppStrings.email,
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
                   keyboardType: TextInputType.emailAddress,
                   validator: Validators.email,
                 ),
@@ -86,27 +86,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   obscureText: _obscurePassword,
                   validator: Validators.password,
                 ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<UserRole>(
-                  value: _selectedRole,
-                  decoration: const InputDecoration(
-                    labelText: AppStrings.role,
-                    prefixIcon: Icon(Icons.people_outlined),
-                  ),
-                  items: UserRole.values
-                      .map((r) => DropdownMenuItem(
-                            value: r,
-                            child: Text(r.displayName),
-                          ))
-                      .toList(),
-                  onChanged: (v) {
-                    if (v != null) setState(() => _selectedRole = v);
-                  },
-                ),
                 if (authState.error != null) ...[
                   const SizedBox(height: 12),
-                  Text(authState.error!,
-                      style: const TextStyle(color: Colors.red, fontSize: 13)),
+                  Text(
+                    authState.error!,
+                    style: const TextStyle(color: Colors.red, fontSize: 13),
+                  ),
                 ],
                 const SizedBox(height: 24),
                 AppButton(
