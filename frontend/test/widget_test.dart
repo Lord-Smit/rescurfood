@@ -4,10 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:foodbridge/app.dart';
 
 void main() {
-  testWidgets('FoodBridgeApp builds', (WidgetTester tester) async {
+  testWidgets('FoodLinkApp builds', (WidgetTester tester) async {
     await tester.pumpWidget(
       const ProviderScope(
-        child: FoodBridgeApp(),
+        child: FoodLinkApp(),
       ),
     );
     await tester.pump();
