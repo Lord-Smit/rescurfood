@@ -12,6 +12,27 @@ class AuthService {
   static const _tokenKey = 'jwt_token';
   static const _userKey = 'user_json';
 
+  static String _extractMessage(dynamic data, String fallback) {
+    if (data == null) return fallback;
+    if (data is String) return data;
+    if (data is Map) {
+      final msg = data['message'] ?? data['error'];
+      if (msg is String && msg.isNotEmpty) return msg;
+      final errors = data['errors'];
+      if (errors is List && errors.isNotEmpty) {
+        final first = errors.first;
+        if (first is Map && first['msg'] != null) return first['msg'].toString();
+        return first.toString();
+      }
+    }
+    if (data is List && data.isNotEmpty) {
+      final first = data.first;
+      if (first is Map && first['msg'] != null) return first['msg'].toString();
+      return first.toString();
+    }
+    return fallback;
+  }
+
   Future<UserModel> login(String email, String password) async {
     try {
       final response = await _api.post(ApiConstants.login, data: {
@@ -19,7 +40,13 @@ class AuthService {
         'password': password,
       });
 
-      final data = response.data['data'];
+      final resData = response.data;
+      final data = (resData is Map) ? resData['data'] : null;
+
+      if (data == null || data['user'] == null) {
+        throw _extractMessage(resData, 'Login failed. Invalid response from server.');
+      }
+
       final user = UserModel.fromMap({
         ...data['user'],
         'token': data['token'],
@@ -29,15 +56,15 @@ class AuthService {
       return user;
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
-        throw 'Server URL not found (404). Please ensure backend is running.';
+        throw 'Server endpoint not found (404). Please check backend configuration.';
       } else if (e.response?.statusCode == 401) {
         throw 'Invalid credentials. Please check your email/phone and password.';
       } else if (e.type == DioExceptionType.connectionTimeout) {
         throw 'Connection timeout. Cannot reach server.';
       }
-      final msg = e.response?.data?['message'];
-      throw msg ?? 'Login failed. Please try again.';
+      throw _extractMessage(e.response?.data, 'Login failed. Please try again.');
     } catch (e) {
+      if (e is String) rethrow;
       throw e.toString();
     }
   }
@@ -58,14 +85,18 @@ class AuthService {
         'password': password,
       });
 
-      return response.data['message'] ?? 'Registration request submitted';
+      final resData = response.data;
+      if (resData is Map) {
+        return resData['message'] ?? 'Registration request submitted successfully.';
+      }
+      return 'Registration request submitted successfully.';
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
         throw 'Registration endpoint not found (404). Check backend configuration.';
       }
-      final msg = e.response?.data?['message'];
-      throw msg ?? 'Registration failed. Please try again.';
+      throw _extractMessage(e.response?.data, 'Registration failed. Please try again.');
     } catch (e) {
+      if (e is String) rethrow;
       throw e.toString();
     }
   }
