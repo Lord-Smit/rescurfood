@@ -2,13 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/widgets/empty_state.dart';
+import '../../../models/user_model.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../services/admin_service.dart';
 
-class ManageUsersScreen extends ConsumerWidget {
+class ManageUsersScreen extends ConsumerStatefulWidget {
   const ManageUsersScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ManageUsersScreen> createState() => _ManageUsersScreenState();
+}
+
+class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
+  final AdminService _adminService = AdminService();
+  List<UserModel> _users = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsers();
+  }
+
+  Future<void> _loadUsers() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final users = await _adminService.getAllUsers();
+      if (mounted) {
+        setState(() {
+          _users = users;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStrings.manageUsers),
@@ -19,47 +61,108 @@ class ManageUsersScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildTableHeader(context),
-          const Divider(height: 1),
-          _buildEmptyRow(context),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Error: $_error',
+                          style: const TextStyle(color: Colors.red)),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: _loadUsers,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                )
+              : _users.isEmpty
+                  ? const EmptyState(
+                      icon: Icons.people_outline,
+                      title: 'No users found',
+                      subtitle: 'Registered platform users will appear here',
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _loadUsers,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        itemCount: _users.length,
+                        itemBuilder: (_, i) => _UserCard(user: _users[i]),
+                      ),
+                    ),
     );
   }
+}
 
-  Widget _buildTableHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.cream.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: const [
-          Expanded(flex: 2, child: Text('Name', style: TextStyle(fontWeight: FontWeight.w600))),
-          Expanded(flex: 2, child: Text('Email', style: TextStyle(fontWeight: FontWeight.w600))),
-          Expanded(child: Text('Role', style: TextStyle(fontWeight: FontWeight.w600))),
-          Expanded(child: Text('Status', style: TextStyle(fontWeight: FontWeight.w600))),
-        ],
-      ),
-    );
-  }
+class _UserCard extends StatelessWidget {
+  final UserModel user;
+  const _UserCard({required this.user});
 
-  Widget _buildEmptyRow(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 48),
-      child: Center(
-        child: Column(
-          children: [
-            Icon(Icons.people_outline, size: 48, color: AppColors.bodyText.withOpacity(0.4)),
-            const SizedBox(height: 8),
-            Text('No users found', style: Theme.of(context).textTheme.bodyMedium),
-          ],
+  @override
+  Widget build(BuildContext context) {
+    final roleColor = _roleColor(user.role);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          leading: CircleAvatar(
+            backgroundColor: roleColor.withOpacity(0.15),
+            child: Text(
+              user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+              style: TextStyle(
+                  color: roleColor, fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
+          title: Text(user.name,
+              style: const TextStyle(fontWeight: FontWeight.w600)),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (user.email.isNotEmpty)
+                Text(user.email,
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.bodyText)),
+              if (user.phone.isNotEmpty)
+                Text(user.phone,
+                    style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            ],
+          ),
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: roleColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              user.role.displayName,
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: roleColor),
+            ),
+          ),
         ),
       ),
     );
+  }
+
+  Color _roleColor(UserRole role) {
+    switch (role) {
+      case UserRole.donor:
+        return AppColors.primaryGreen;
+      case UserRole.ngo:
+        return AppColors.accentOrange;
+      case UserRole.admin:
+        return Colors.purple;
+    }
   }
 }

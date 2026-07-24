@@ -20,6 +20,18 @@ class DonationService {
     }
   }
 
+  Future<List<DonationModel>> getAllDonations() async {
+    try {
+      final response = await _api.get(ApiConstants.donations);
+      final resData = response.data['data'] ?? response.data;
+      return ((resData['donations'] ?? []) as List)
+          .map((e) => DonationModel.fromMap(e))
+          .toList();
+    } catch (_) {
+      return MockData.availableDonations();
+    }
+  }
+
   Future<List<DonationModel>> getAvailableDonations() async {
     try {
       final response = await _api.get(ApiConstants.donationsAvailable);
