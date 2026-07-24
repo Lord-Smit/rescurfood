@@ -1,14 +1,14 @@
 import 'package:flutter/foundation.dart';
 
 class ApiConstants {
-  /// Live Production Render URL
+  /// Live Production Render URL (Update this with your actual URL once deployed on Render.com)
   static const String liveBackendUrl = 'https://rescurfood-backend.onrender.com/api';
 
-  /// PC Local IPv4 address for local physical Android/iOS devices
+  /// PC Local IPv4 address for local physical Android/iOS devices on local Wi-Fi
   static const String pcLocalIp = '192.168.1.2';
 
-  /// Set to [true] to use the live Render server, or [false] for local development
-  static const bool useLiveBackend = true;
+  /// Set to [false] while developing locally (Wi-Fi), or [true] after deploying backend to Render.com
+  static const bool useLiveBackend = false;
 
   static String get baseUrl {
     if (useLiveBackend) {
@@ -53,6 +53,6 @@ class ApiConstants {
   static const String deviceToken = '/notifications/device-token';
 
   // Uploads & Admin
-  static const String uploadFoodPhoto = '/uploads/photo';
+  static const String uploadFoodPhoto = '/uploads/food-photo';
   static const String adminRequests = '/admin/requests';
 }

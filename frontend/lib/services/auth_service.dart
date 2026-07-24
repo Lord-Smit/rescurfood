@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../core/constants/api_constants.dart';
 import '../models/user_model.dart';
@@ -13,19 +13,33 @@ class AuthService {
   static const _userKey = 'user_json';
 
   Future<UserModel> login(String email, String password) async {
-    final response = await _api.post(ApiConstants.login, data: {
-      'email': email,
-      'password': password,
-    });
+    try {
+      final response = await _api.post(ApiConstants.login, data: {
+        'email': email,
+        'password': password,
+      });
 
-    final data = response.data['data'];
-    final user = UserModel.fromMap({
-      ...data['user'],
-      'token': data['token'],
-    });
+      final data = response.data['data'];
+      final user = UserModel.fromMap({
+        ...data['user'],
+        'token': data['token'],
+      });
 
-    await _persistSession(user);
-    return user;
+      await _persistSession(user);
+      return user;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        throw 'Server URL not found (404). Please ensure backend is running.';
+      } else if (e.response?.statusCode == 401) {
+        throw 'Invalid credentials. Please check your email/phone and password.';
+      } else if (e.type == DioExceptionType.connectionTimeout) {
+        throw 'Connection timeout. Cannot reach server.';
+      }
+      final msg = e.response?.data?['message'];
+      throw msg ?? 'Login failed. Please try again.';
+    } catch (e) {
+      throw e.toString();
+    }
   }
 
   Future<String> applyForRegistration({
@@ -35,15 +49,25 @@ class AuthService {
     required String phone,
     required String password,
   }) async {
-    final response = await _api.post(ApiConstants.applyRegistration, data: {
-      'type': type,
-      'name': name,
-      'email': email,
-      'phone': phone,
-      'password': password,
-    });
+    try {
+      final response = await _api.post(ApiConstants.applyRegistration, data: {
+        'type': type,
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'password': password,
+      });
 
-    return response.data['message'] ?? 'Registration request submitted';
+      return response.data['message'] ?? 'Registration request submitted';
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        throw 'Registration endpoint not found (404). Check backend configuration.';
+      }
+      final msg = e.response?.data?['message'];
+      throw msg ?? 'Registration failed. Please try again.';
+    } catch (e) {
+      throw e.toString();
+    }
   }
 
   Future<void> logout() async {
