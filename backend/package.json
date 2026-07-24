@@ -1,7 +1,7 @@
 {
-  "name": "foodbridge-backend",
+  "name": "foodlink-backend",
   "version": "1.0.0",
-  "description": "FoodBridge - IoT-based Smart Food Donation and Distribution System",
+  "description": "FoodLink - Smart Food Donation and Distribution System",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

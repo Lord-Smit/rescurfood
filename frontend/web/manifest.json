@@ -1,6 +1,6 @@
 {
-    "name": "foodbridge",
-    "short_name": "foodbridge",
+    "name": "FoodLink",
+    "short_name": "FoodLink",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

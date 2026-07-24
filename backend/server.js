@@ -41,5 +41,5 @@ app.use(errorHandler);
 
 // Listen on '0.0.0.0' so Android Emulator (10.0.2.2) and local network devices can connect
 app.listen(port, '0.0.0.0', () => {
-  console.log(`FoodBridge server running on http://0.0.0.0:${port}`);
+  console.log(`FoodLink server running on http://0.0.0.0:${port}`);
 });

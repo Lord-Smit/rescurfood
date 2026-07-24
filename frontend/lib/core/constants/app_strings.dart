@@ -1,5 +1,5 @@
 class AppStrings {
-  static const String appName = 'FoodBridge';
+  static const String appName = 'FoodLink';
   static const String tagline = 'Bridging surplus to those in need';
 
   static const String login = 'Login';
