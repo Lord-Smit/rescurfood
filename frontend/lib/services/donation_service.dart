@@ -109,16 +109,4 @@ class DonationService {
       return MockData.myRequests();
     }
   }
-
-  Future<List<DonationModel>> getAllDonations() async {
-    try {
-      final response = await _api.get(ApiConstants.donations);
-      final resData = response.data['data'] ?? response.data;
-      return ((resData['donations'] ?? []) as List)
-          .map((e) => DonationModel.fromMap(e))
-          .toList();
-    } catch (_) {
-      return MockData.allDonations();
-    }
-  }
 }
