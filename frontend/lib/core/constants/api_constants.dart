@@ -1,16 +1,23 @@
 import 'package:flutter/foundation.dart';
 
 class ApiConstants {
-  /// PC Local IPv4 address for physical Android/iOS devices on local Wi-Fi.
-  /// If using USB debugging, you can also run: `adb reverse tcp:5000 tcp:5000`
+  /// Live Production Render URL (Update this if your Render app URL is different)
+  static const String liveBackendUrl = 'https://rescurfood-backend.onrender.com/api';
+
+  /// PC Local IPv4 address for local physical Android/iOS devices
   static const String pcLocalIp = '192.168.1.2';
 
+  /// Set to [true] to use the live Render backend, or [false] for local development
+  static const bool useLiveBackend = true;
+
   static String get baseUrl {
+    if (useLiveBackend) {
+      return liveBackendUrl;
+    }
     if (kIsWeb) {
       return 'http://localhost:5000/api';
     }
     if (defaultTargetPlatform == TargetPlatform.android) {
-      // Uses host Wi-Fi IP so physical Android devices can connect
       return 'http://$pcLocalIp:5000/api';
     }
     return 'http://localhost:5000/api';
