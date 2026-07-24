@@ -26,6 +26,10 @@ class _NgoHomeScreenState extends ConsumerState<NgoHomeScreen> {
     });
   }
 
+  Future<void> _refresh() async {
+    await ref.read(donationProvider.notifier).loadAvailableDonations();
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -48,8 +52,10 @@ class _NgoHomeScreenState extends ConsumerState<NgoHomeScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6FAF6),
-      body: CustomScrollView(
-        slivers: [
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: CustomScrollView(
+          slivers: [
           // ── Header ─────────────────────────────────────────────────────
           SliverToBoxAdapter(
             child: Container(
@@ -204,6 +210,7 @@ class _NgoHomeScreenState extends ConsumerState<NgoHomeScreen> {
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
+    ),
     );
   }
 }

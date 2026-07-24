@@ -103,7 +103,10 @@ class DonationNotifier extends StateNotifier<DonationState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       await _donationService.createDonation(data);
-      await loadMyDonations();
+      await Future.wait([
+        loadMyDonations(),
+        loadAvailableDonations(),
+      ]);
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
