@@ -77,6 +77,16 @@ class DonationModel {
   });
 
   factory DonationModel.fromMap(Map<String, dynamic> map) {
+    DateTime parseDate(dynamic val) {
+      if (val == null) return DateTime.now();
+      if (val is String) return DateTime.tryParse(val) ?? DateTime.now();
+      if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+      if (val is Map && val['_seconds'] != null) {
+        return DateTime.fromMillisecondsSinceEpoch((val['_seconds'] as int) * 1000);
+      }
+      return DateTime.now();
+    }
+
     return DonationModel(
       id: map['_id'] ?? map['id'] ?? '',
       donorId: map['donor_id'] ?? map['donorId'] ?? '',
@@ -84,11 +94,11 @@ class DonationModel {
       foodName: map['food_name'] ?? map['foodName'] ?? '',
       quantity: (map['quantity'] ?? 0).toDouble(),
       unit: map['unit'] ?? 'kg',
-      expiryTime: DateTime.parse(map['expiry_time'] ?? map['expiryTime'] ?? DateTime.now().toIso8601String()),
+      expiryTime: parseDate(map['expiry_time'] ?? map['expiryTime']),
       pickupAddress: map['pickup_address'] ?? map['pickupAddress'] ?? '',
       photoUrl: map['photo_url'] ?? map['photoUrl'],
       status: DonationStatusExtension.fromString(map['status'] ?? 'available'),
-      createdAt: DateTime.parse(map['created_at'] ?? map['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: parseDate(map['created_at'] ?? map['createdAt']),
     );
   }
 

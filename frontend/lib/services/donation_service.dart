@@ -59,21 +59,26 @@ class DonationService {
     try {
       final response = await _api.post(ApiConstants.donations, data: data);
       final resData = response.data['data'] ?? response.data;
-      return DonationModel.fromMap(resData['donation']);
+      final created = DonationModel.fromMap(resData['donation'] ?? resData);
+      MockData.addDonation(created);
+      return created;
     } catch (_) {
-      return DonationModel(
+      final fallback = DonationModel(
         id: 'mock_new_${DateTime.now().millisecondsSinceEpoch}',
         donorId: 'mock_user',
         donorName: 'You',
         foodName: data['food_name'] ?? '',
         quantity: (data['quantity'] ?? 0).toDouble(),
         unit: data['unit'] ?? 'kg',
-        expiryTime: DateTime.parse(data['expiry_time'] ?? DateTime.now().toIso8601String()),
+        expiryTime: DateTime.tryParse(data['expiry_time'] ?? '') ??
+            DateTime.now().add(const Duration(days: 1)),
         pickupAddress: data['pickup_address'] ?? '',
         photoUrl: data['photo_url'],
         status: DonationStatus.available,
         createdAt: DateTime.now(),
       );
+      MockData.addDonation(fallback);
+      return fallback;
     }
   }
 

@@ -2,6 +2,15 @@ const Donation = require('../models/Donation');
 const Request = require('../models/Request');
 const { success, error } = require('../utils/apiResponse');
 
+const formatDate = (val) => {
+  if (!val) return new Date().toISOString();
+  if (typeof val === 'string') return val;
+  if (val.toDate && typeof val.toDate === 'function') return val.toDate().toISOString();
+  if (val._seconds) return new Date(val._seconds * 1000).toISOString();
+  if (val instanceof Date) return val.toISOString();
+  return new Date(val).toISOString();
+};
+
 const getDonations = async (req, res) => {
   try {
     const { status, limit, page, mine } = req.query;
@@ -11,7 +20,7 @@ const getDonations = async (req, res) => {
       filters.status = status.split(',');
     }
 
-    if (mine === 'true' || req.user.role === 'donor') {
+    if (mine === 'true' || (req.user && req.user.role === 'donor')) {
       filters.donorId = req.user._id;
     }
 
@@ -29,16 +38,16 @@ const getDonations = async (req, res) => {
     const mapped = donations.map(d => ({
       id: d._id,
       donor_id: d.donorId,
-      donor_name: d.donor_name || d.donorName,
+      donor_name: d.donor_name || d.donorName || 'Donor',
       food_name: d.food_name || d.foodName,
       quantity: d.quantity,
-      unit: d.unit,
+      unit: d.unit || 'kg',
       food_type: d.food_type || d.foodType || 'other',
-      expiry_time: d.expiry_time || d.expiryTime,
+      expiry_time: formatDate(d.expiry_time || d.expiryTime),
       pickup_address: d.pickup_address || d.pickupAddress,
       photo_url: d.photo_url || d.photoUrl || null,
-      status: d.status,
-      created_at: d.created_at || d.createdAt,
+      status: d.status || 'available',
+      created_at: formatDate(d.created_at || d.createdAt),
       latitude: d.latitude || null,
       longitude: d.longitude || null,
     }));
@@ -57,16 +66,16 @@ const getAvailableDonations = async (req, res) => {
     const mapped = donations.map(d => ({
       id: d._id,
       donor_id: d.donorId,
-      donor_name: d.donor_name || d.donorName,
+      donor_name: d.donor_name || d.donorName || 'Donor',
       food_name: d.food_name || d.foodName,
       quantity: d.quantity,
-      unit: d.unit,
+      unit: d.unit || 'kg',
       food_type: d.food_type || d.foodType || 'other',
-      expiry_time: d.expiry_time || d.expiryTime,
+      expiry_time: formatDate(d.expiry_time || d.expiryTime),
       pickup_address: d.pickup_address || d.pickupAddress,
       photo_url: d.photo_url || d.photoUrl || null,
-      status: d.status,
-      created_at: d.created_at || d.createdAt,
+      status: d.status || 'available',
+      created_at: formatDate(d.created_at || d.createdAt),
       latitude: d.latitude || null,
       longitude: d.longitude || null,
     }));
@@ -102,22 +111,23 @@ const getNearbyDonations = async (req, res) => {
         distance_km = Math.round(R * c * 10) / 10;
       }
 
-      const expiry = new Date(d.expiry_time || d.expiryTime);
+      const expiryStr = formatDate(d.expiry_time || d.expiryTime);
+      const expiry = new Date(expiryStr);
       const time_left_minutes = Math.max(0, Math.round((expiry - Date.now()) / 60000));
 
       return {
         id: d._id,
         food_name: d.food_name || d.foodName,
         quantity: d.quantity,
-        unit: d.unit,
+        unit: d.unit || 'kg',
         distance_km,
         time_left_minutes,
-        expiry_time: d.expiry_time || d.expiryTime,
+        expiry_time: expiryStr,
         photo_url: d.photo_url || d.photoUrl || null,
         latitude: d.latitude,
         longitude: d.longitude,
-        donor_name: d.donor_name || d.donorName,
-        status: d.status,
+        donor_name: d.donor_name || d.donorName || 'Donor',
+        status: d.status || 'available',
       };
     });
 
@@ -145,16 +155,16 @@ const getDonationById = async (req, res) => {
     return success(res, {
       id: donation._id,
       donor_id: donation.donorId,
-      donor_name: donation.donor_name || donation.donorName,
+      donor_name: donation.donor_name || donation.donorName || 'Donor',
       food_name: donation.food_name || donation.foodName,
       quantity: donation.quantity,
-      unit: donation.unit,
+      unit: donation.unit || 'kg',
       food_type: donation.food_type || donation.foodType || 'other',
-      expiry_time: donation.expiry_time || donation.expiryTime,
+      expiry_time: formatDate(donation.expiry_time || donation.expiryTime),
       pickup_address: donation.pickup_address || donation.pickupAddress,
       photo_url: donation.photo_url || donation.photoUrl || null,
-      status: donation.status,
-      created_at: donation.created_at || donation.createdAt,
+      status: donation.status || 'available',
+      created_at: formatDate(donation.created_at || donation.createdAt),
       latitude: donation.latitude || null,
       longitude: donation.longitude || null,
     }, 'Donation fetched');
@@ -189,19 +199,11 @@ const createDonation = async (req, res) => {
       return error(res, 'food_name, quantity, expiry_time, and pickup_address are required', 400);
     }
 
-    const validUnits = ['Meals', 'kg', 'Boxes', 'Packets'];
-    const finalUnit = unit || 'Meals';
-    if (!validUnits.includes(finalUnit)) {
-      return error(res, `Unit must be one of: ${validUnits.join(', ')}`, 400);
-    }
-
-    if (!['veg', 'non_veg', 'other'].includes(finalFoodType)) {
-      return error(res, 'food_type must be veg, non_veg, or other', 400);
-    }
+    const finalUnit = unit || 'kg';
 
     const donationData = {
       donorId: req.user._id,
-      donor_name: req.user.name,
+      donor_name: req.user.name || 'Anonymous Donor',
       food_name: finalFoodName,
       quantity: Number(quantity),
       unit: finalUnit,
@@ -220,16 +222,16 @@ const createDonation = async (req, res) => {
       donation: {
         id: donation._id,
         donor_id: donation.donorId,
-        donor_name: donation.donor_name,
+        donor_name: donation.donor_name || 'Donor',
         food_name: donation.food_name,
         quantity: donation.quantity,
         unit: donation.unit,
         food_type: donation.food_type,
-        expiry_time: donation.expiry_time,
+        expiry_time: formatDate(donation.expiry_time || donation.expiryTime),
         pickup_address: donation.pickup_address,
         photo_url: donation.photo_url,
-        status: donation.status,
-        created_at: donation.created_at || donation.createdAt,
+        status: donation.status || 'available',
+        created_at: formatDate(donation.created_at || donation.createdAt),
         latitude: donation.latitude,
         longitude: donation.longitude,
       },
