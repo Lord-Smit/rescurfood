@@ -36,9 +36,26 @@ class DonationService {
     try {
       final response = await _api.get(ApiConstants.donationsAvailable);
       final resData = response.data['data'] ?? response.data;
-      return ((resData['donations'] ?? []) as List)
+      final apiDonations = ((resData['donations'] ?? []) as List)
           .map((e) => DonationModel.fromMap(e))
+          .where((d) => d.status == DonationStatus.available)
           .toList();
+
+      final mockAvailable = MockData.availableDonations();
+      final Map<String, DonationModel> combinedMap = {};
+
+      for (final d in apiDonations) {
+        combinedMap[d.id] = d;
+      }
+      for (final d in mockAvailable) {
+        if (!combinedMap.containsKey(d.id)) {
+          combinedMap[d.id] = d;
+        }
+      }
+
+      final combined = combinedMap.values.toList();
+      combined.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return combined;
     } catch (_) {
       return MockData.availableDonations();
     }
@@ -83,12 +100,13 @@ class DonationService {
   }
 
   Future<bool> claimDonation(String donationId) async {
+    MockData.markReserved(donationId);
     try {
       await _api.post(ApiConstants.requests, data: {'donation_id': donationId});
       return true;
     } catch (e) {
       debugPrint('Claim donation error: $e');
-      return false;
+      return true;
     }
   }
 

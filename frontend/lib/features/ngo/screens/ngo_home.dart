@@ -57,21 +57,33 @@ class _NgoHomeScreenState extends ConsumerState<NgoHomeScreen> {
           d.pickupAddress.toLowerCase().contains(_query.toLowerCase());
 
       bool matchesCategory = true;
+      final name = d.foodName.toLowerCase();
       if (_selectedCategory == 'non_veg') {
-        matchesCategory = d.foodName.toLowerCase().contains('non-veg') ||
-            d.foodName.toLowerCase().contains('chicken') ||
-            d.foodName.toLowerCase().contains('mutton') ||
-            d.foodName.toLowerCase().contains('meat');
+        matchesCategory = name.contains('non-veg') ||
+            name.contains('chicken') ||
+            name.contains('mutton') ||
+            name.contains('meat') ||
+            name.contains('fish');
       } else if (_selectedCategory == 'cooked') {
-        matchesCategory = !d.foodName.toLowerCase().contains('bread') &&
-            !d.foodName.toLowerCase().contains('pastry');
+        matchesCategory = name.contains('curry') ||
+            name.contains('rice') ||
+            name.contains('biryani') ||
+            name.contains('lunch') ||
+            name.contains('meal') ||
+            (!name.contains('bread') && !name.contains('pastry'));
       } else if (_selectedCategory == 'bakery') {
-        matchesCategory = d.foodName.toLowerCase().contains('bread') ||
-            d.foodName.toLowerCase().contains('pastry') ||
-            d.foodName.toLowerCase().contains('cake');
+        matchesCategory = name.contains('bread') ||
+            name.contains('pastry') ||
+            name.contains('cake') ||
+            name.contains('bakery');
       } else if (_selectedCategory == 'produce') {
-        matchesCategory = d.foodName.toLowerCase().contains('fruit') ||
-            d.foodName.toLowerCase().contains('veg');
+        matchesCategory = name.contains('fruit') ||
+            name.contains('veg') ||
+            name.contains('produce');
+      } else if (_selectedCategory == 'groceries') {
+        matchesCategory = name.contains('box') ||
+            name.contains('pack') ||
+            name.contains('grocery');
       }
 
       return matchesQuery && matchesCategory;
